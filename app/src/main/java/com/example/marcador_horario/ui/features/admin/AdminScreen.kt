@@ -25,6 +25,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 
+/**
+ * Pantalla del Dashboard de Administración (Exclusiva para perfil Admin).
+ * Interfaz de alto nivel que muestra métricas generales, estado de los empleados y accesos rápidos.
+ * Utiliza un diseño moderno de superposición (Overlapping UI) y listas perezosas (LazyColumn)
+ * para optimizar el rendimiento en pantallas pequeñas.
+ *
+ * @param navController Gestor de navegación para redirigir (ej. Logout seguro).
+ * @param username Nombre del administrador activo, inyectado desde el estado global.
+ * @param isDarkMode Estado actual del tema de la app para adaptar la paleta de colores.
+ */
 @Composable
 fun AdminScreen(
     navController: NavController,
@@ -32,6 +42,8 @@ fun AdminScreen(
     isDarkMode: Boolean
 ) {
     // --- PALETA DE COLORES PREMIUM ---
+    // Colores calculados dinámicamente. El "Azul Royal" se mantiene constante para dar identidad corporativa,
+    // mientras que los fondos y textos mutan dependiendo del tema del sistema (Claro/Oscuro).
     val primaryAdmin = Color(0xFF2563EB) // Azul Royal moderno
     val bgColor = if (isDarkMode) Color(0xFF121212) else Color(0xFFF3F4F6) // Gris súper suave
     val cardColor = if (isDarkMode) Color(0xFF1E1E1E) else Color.White
@@ -39,20 +51,27 @@ fun AdminScreen(
     val textSecondary = if (isDarkMode) Color(0xFFA0AEC0) else Color(0xFF6B7280)
     val dividerColor = if (isDarkMode) Color(0xFF333333) else Color(0xFFE5E7EB)
 
+    // Scaffold provee la estructura base (sin BottomBar en este caso, ya que el admin tiene su propia navegación)
     Scaffold(
         containerColor = bgColor
     ) { paddingValues ->
+        // LazyColumn asegura que todo el Dashboard sea scrolleable y no se rompa (Overflow)
+        // en pantallas con resoluciones más pequeñas.
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+
+            // ====================================================================
+            // SECCIÓN 1: CABECERA Y MÉTRICAS (Efecto Overlapping)
+            // ====================================================================
             item {
-                // --- CABECERA CON EFECTO SUPERPUESTO (OVERLAPPING) ---
+                // Box principal que permite apilar elementos uno encima del otro (Z-Index implícito)
                 Box(
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Fondo de la cabecera
+                    // 1. Fondo de la cabecera (Azul)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -71,7 +90,9 @@ fun AdminScreen(
                         }
                     }
 
-                    // Tarjeta flotante de Estadísticas (Empieza en el dp 140 para superponerse)
+                    // 2. Tarjeta flotante de Estadísticas
+                    // TRUCO UI: Se le aplica un padding-top de 140.dp para forzar que baje y quede "cabalgando"
+                    // mitad sobre el fondo azul y mitad sobre el fondo gris.
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -89,22 +110,25 @@ fun AdminScreen(
                         ) {
                             StatItem("42", "Total", textPrimary, textSecondary)
                             VerticalDivider(modifier = Modifier.height(40.dp), color = dividerColor)
-                            StatItem("38", "Activos", Color(0xFF1BD176), textSecondary) // Verde
+                            StatItem("38", "Activos", Color(0xFF1BD176), textSecondary) // Verde = Positivo
                             VerticalDivider(modifier = Modifier.height(40.dp), color = dividerColor)
-                            StatItem("4", "Ausentes", Color(0xFFFF5252), textSecondary) // Rojo
+                            StatItem("4", "Ausentes", Color(0xFFFF5252), textSecondary) // Rojo = Alerta
                         }
                     }
                 }
             }
 
+            // ====================================================================
+            // SECCIÓN 2: GRID DE ACCIONES RÁPIDAS
+            // ====================================================================
             item {
                 Spacer(modifier = Modifier.height(30.dp))
 
-                // --- ACCIONES RÁPIDAS ---
                 Column(modifier = Modifier.padding(horizontal = 20.dp)) {
                     Text("Gestión Rápida", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = textPrimary)
                     Spacer(modifier = Modifier.height(15.dp))
 
+                    // Filas con Modificadores de Peso (weight = 1f) para crear una cuadrícula perfecta 2x2
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(15.dp)) {
                         ActionCard(Modifier.weight(1f), "Empleados", Icons.Filled.AccountCircle, Color(0xFF0052D4), cardColor, textPrimary) { }
                         ActionCard(Modifier.weight(1f), "Reportes", Icons.AutoMirrored.Filled.List, Color(0xFFF2994A), cardColor, textPrimary) { }
@@ -114,6 +138,8 @@ fun AdminScreen(
 
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(15.dp)) {
                         ActionCard(Modifier.weight(1f), "Ajustes", Icons.Filled.Settings, Color(0xFF8E44AD), cardColor, textPrimary) { }
+
+                        // Botón de Logout interactivo y seguro (Limpia el Backstack)
                         ActionCard(Modifier.weight(1f), "Salir", Icons.AutoMirrored.Filled.ExitToApp, Color(0xFFFF5252), cardColor, textPrimary) {
                             navController.navigate("login") { popUpTo(0) { inclusive = true } }
                         }
@@ -121,10 +147,12 @@ fun AdminScreen(
                 }
             }
 
+            // ====================================================================
+            // SECCIÓN 3: FEED DE ACTIVIDAD RECIENTE
+            // ====================================================================
             item {
                 Spacer(modifier = Modifier.height(30.dp))
 
-                // --- PANEL DE ACTIVIDAD RECIENTE ---
                 Column(modifier = Modifier.padding(horizontal = 20.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -151,15 +179,22 @@ fun AdminScreen(
                             ActivityRow("David López", "Salida • 16:30 PM", false, textPrimary, textSecondary)
                         }
                     }
-                    Spacer(modifier = Modifier.height(30.dp)) // Margen final
+                    Spacer(modifier = Modifier.height(30.dp)) // Margen final inferior
                 }
             }
         }
     }
 }
 
-// --- MICRO-COMPONENTES (Limpian el código principal) ---
+// ==============================================================================
+// MICROCOMPONENTES (Sub-UI)
+// Extraídos del flujo principal para seguir el principio DRY (Don't Repeat Yourself)
+// y facilitar la lectura y el mantenimiento del código.
+// ==============================================================================
 
+/**
+ * Representa una métrica individual dentro de la tarjeta de estadísticas.
+ */
 @Composable
 fun StatItem(value: String, label: String, valueColor: Color, labelColor: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -168,6 +203,10 @@ fun StatItem(value: String, label: String, valueColor: Color, labelColor: Color)
     }
 }
 
+/**
+ * Tarjeta clickeable para el grid de acciones rápidas.
+ * Crea automáticamente un fondo semitransparente para el icono basándose en su color principal (Alpha = 0.15f).
+ */
 @Composable
 fun ActionCard(modifier: Modifier = Modifier, title: String, icon: ImageVector, color: Color, cardColor: Color, textColor: Color, onClick: () -> Unit) {
     Card(
@@ -192,13 +231,17 @@ fun ActionCard(modifier: Modifier = Modifier, title: String, icon: ImageVector, 
     }
 }
 
+/**
+ * Fila de información que representa el fichaje reciente de un empleado.
+ * Muestra un indicador visual de estado: Verde para Entradas, Naranja para Salidas.
+ */
 @Composable
 fun ActivityRow(name: String, detail: String, isEntry: Boolean, textColor: Color, subTextColor: Color) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(15.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Indicador de estado (Verde para entrada, Naranja para salida)
+        // Lógica visual del indicador (Verde = Entrada, Naranja = Salida)
         val statusColor = if (isEntry) Color(0xFF1BD176) else Color(0xFFF2994A)
         Box(
             modifier = Modifier.size(12.dp).clip(CircleShape).background(statusColor)
