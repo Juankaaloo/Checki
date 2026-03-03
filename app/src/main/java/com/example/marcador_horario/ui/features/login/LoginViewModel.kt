@@ -6,12 +6,10 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 
 class LoginViewModel : ViewModel() {
-    // 1. Ponemos el usuario y contraseña de prueba por defecto
-    var email by mutableStateOf("empleado@prueba.com")
-    var password by mutableStateOf("123456")
+    // Lo dejamos vacío por defecto para que tú escribas el que quieras probar
+    var email by mutableStateOf("")
+    var password by mutableStateOf("")
     var passwordVisible by mutableStateOf(false)
-
-    // Lo dejamos en 'true' para que no tengas que marcar la casilla cada vez que pruebas
     var acceptedTerms by mutableStateOf(true)
 
     fun onEmailChanged(newEmail: String) { email = newEmail }
@@ -19,17 +17,19 @@ class LoginViewModel : ViewModel() {
     fun togglePasswordVisibility() { passwordVisible = !passwordVisible }
     fun onTermsChanged(accepted: Boolean) { acceptedTerms = accepted }
 
-    fun onLoginClick(onSuccess: (String) -> Unit) {
-        // 2. Validamos que solo deje entrar si es el usuario de prueba y aceptó términos
-        if (email == "empleado@prueba.com" && password == "123456" && acceptedTerms) {
+    fun onLoginClick(onSuccess: (String, Boolean) -> Unit) {
+        // Solo verificamos que no estén vacíos y que haya aceptado términos
+        if (email.isNotEmpty() && password.isNotEmpty() && acceptedTerms) {
 
-            // Recortamos el nombre (antes del @) para que el Home te salude como "Empleado"
-            val extractedName = email.substringBefore("@").replaceFirstChar { it.uppercase() }
-            onSuccess(extractedName)
+            if (email == "admin@prueba.com" && password == "admin123") {
+                // 1. Si escribe exactamente esto, va a la pantalla de ADMIN
+                onSuccess("Administrador", true)
+            } else {
+                // 2. CUALQUIER OTRO CORREO entra como empleado normal al HOME
+                val name = email.substringBefore("@").replaceFirstChar { it.uppercase() }
+                onSuccess(name, false)
+            }
 
-        } else {
-            // Aquí a futuro podríamos mostrar un error si se equivocan de clave
-            println("Datos incorrectos o términos no aceptados")
         }
     }
 }

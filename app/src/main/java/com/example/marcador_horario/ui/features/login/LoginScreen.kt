@@ -24,7 +24,7 @@ import com.example.marcador_horario.R
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
-    onLoginSuccess: (String) -> Unit // <-- Ahora pasamos el nombre
+    onLoginSuccess: (String, Boolean) -> Unit // <-- Ahora pasamos el nombre Y si es admin
 ) {
     Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
         Box(

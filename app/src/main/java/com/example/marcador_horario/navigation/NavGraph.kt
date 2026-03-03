@@ -12,35 +12,40 @@ import com.example.marcador_horario.ui.features.login.LoginScreen
 import com.example.marcador_horario.ui.features.home.HomeScreen
 import com.example.marcador_horario.ui.features.record.RecordScreen
 import com.example.marcador_horario.ui.features.settings.SettingsScreen
+import com.example.marcador_horario.ui.features.admin.AdminScreen // <-- IMPORTAMOS LA NUEVA PANTALLA
 
 @Composable
 fun NavGraph() {
     val navController = rememberNavController()
 
-    // --- MEMORIA GLOBAL ---
     val systemTheme = isSystemInDarkTheme()
     var isDarkMode by remember { mutableStateOf(systemTheme) }
-
-    // 1. Creamos una memoria para guardar el nombre de quien entra
     var activeUsername by remember { mutableStateOf("Employee") }
 
     NavHost(navController = navController, startDestination = "login") {
 
         composable("login") {
-            LoginScreen(onLoginSuccess = { username ->
-                // 2. Cuando el login es correcto, guardamos el nombre
+            LoginScreen(onLoginSuccess = { username, isAdmin ->
                 activeUsername = username
 
-                // 3. Vamos al home (ruta simplificada)
-                navController.navigate("home") {
+                // --- MAGIA DEL RUTEO ---
+                // Si es admin, va a la ruta "admin_home", si no, a "home"
+                val rutaDestino = if (isAdmin) "admin_home" else "home"
+
+                navController.navigate(rutaDestino) {
                     popUpTo("login") { inclusive = true }
                 }
             })
         }
 
+        // Ruta del empleado normal
         composable("home") {
-            // Le pasamos el nombre real
             HomeScreen(navController = navController, username = activeUsername, isDarkMode = isDarkMode)
+        }
+
+        // Ruta exclusiva del Administrador
+        composable("admin_home") {
+            AdminScreen(navController = navController, username = activeUsername, isDarkMode = isDarkMode)
         }
 
         composable("record") {
@@ -48,7 +53,6 @@ fun NavGraph() {
         }
 
         composable("settings") {
-            // Le pasamos el nombre real a los ajustes también
             SettingsScreen(
                 navController = navController,
                 username = activeUsername,

@@ -1,6 +1,7 @@
 package com.example.marcador_horario.ui.features.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,7 +25,7 @@ import androidx.navigation.NavController
 @Composable
 fun SettingsScreen(
     navController: NavController,
-    username: String, // <-- AHORA RECIBE EL NOMBRE DEL NAVGRAPH
+    username: String,
     isDarkMode: Boolean,
     onThemeChange: (Boolean) -> Unit
 ) {
@@ -43,7 +44,7 @@ fun SettingsScreen(
                 NavigationBarItem(
                     icon = { Icon(Icons.Filled.Home, contentDescription = null, tint = iconColor) },
                     selected = false,
-                    onClick = { navController.navigate("home") } // <-- Ruta arreglada
+                    onClick = { navController.navigate("home") }
                 )
                 NavigationBarItem(
                     icon = { Icon(Icons.Filled.DateRange, contentDescription = null, tint = iconColor) },
@@ -73,7 +74,6 @@ fun SettingsScreen(
                         ) { Icon(Icons.Filled.Person, contentDescription = null, tint = Color(0xFF0052D4)) }
                         Spacer(modifier = Modifier.width(15.dp))
                         Column {
-                            // --- ¡AQUÍ PINTAMOS EL NOMBRE DINÁMICO! ---
                             Text(username, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = textColor)
                             Text("Employee Profile", color = if (isDarkMode) Color.LightGray else Color.Black, fontSize = 14.sp)
                         }
@@ -104,7 +104,21 @@ fun SettingsScreen(
                     Column {
                         SettingClickableItem(Icons.AutoMirrored.Filled.List, "Reports", textColor, hasArrow = true)
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 15.dp), color = dividerColor)
-                        Row(modifier = Modifier.fillMaxWidth().padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
+
+                        // --- ¡AQUÍ ESTÁ LA MAGIA DEL LOGOUT! ---
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    // 1. Navegamos al login
+                                    navController.navigate("login") {
+                                        // 2. Destruimos todo el historial de pantallas anterior
+                                        popUpTo(0) { inclusive = true }
+                                    }
+                                }
+                                .padding(15.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, tint = Color(0xFFFF5252))
                             Spacer(modifier = Modifier.width(15.dp))
                             Text("Log Out", color = Color(0xFFFF5252), fontWeight = FontWeight.Bold)

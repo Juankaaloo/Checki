@@ -1,0 +1,216 @@
+package com.example.marcador_horario.ui.features.admin
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+
+@Composable
+fun AdminScreen(
+    navController: NavController,
+    username: String,
+    isDarkMode: Boolean
+) {
+    // --- PALETA DE COLORES PREMIUM ---
+    val primaryAdmin = Color(0xFF2563EB) // Azul Royal moderno
+    val bgColor = if (isDarkMode) Color(0xFF121212) else Color(0xFFF3F4F6) // Gris súper suave
+    val cardColor = if (isDarkMode) Color(0xFF1E1E1E) else Color.White
+    val textPrimary = if (isDarkMode) Color.White else Color(0xFF1F2937)
+    val textSecondary = if (isDarkMode) Color(0xFFA0AEC0) else Color(0xFF6B7280)
+    val dividerColor = if (isDarkMode) Color(0xFF333333) else Color(0xFFE5E7EB)
+
+    Scaffold(
+        containerColor = bgColor
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            item {
+                // --- CABECERA CON EFECTO SUPERPUESTO (OVERLAPPING) ---
+                Box(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Fondo de la cabecera
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(220.dp)
+                            .background(
+                                color = primaryAdmin,
+                                shape = RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp)
+                            )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(start = 25.dp, top = 40.dp, end = 25.dp)
+                        ) {
+                            Text("Dashboard", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Bienvenido, $username", color = Color.White.copy(alpha = 0.8f), fontSize = 16.sp)
+                        }
+                    }
+
+                    // Tarjeta flotante de Estadísticas (Empieza en el dp 140 para superponerse)
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 140.dp, start = 20.dp, end = 20.dp),
+                        colors = CardDefaults.cardColors(containerColor = cardColor),
+                        shape = RoundedCornerShape(20.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 20.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            StatItem("42", "Total", textPrimary, textSecondary)
+                            VerticalDivider(modifier = Modifier.height(40.dp), color = dividerColor)
+                            StatItem("38", "Activos", Color(0xFF1BD176), textSecondary) // Verde
+                            VerticalDivider(modifier = Modifier.height(40.dp), color = dividerColor)
+                            StatItem("4", "Ausentes", Color(0xFFFF5252), textSecondary) // Rojo
+                        }
+                    }
+                }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(30.dp))
+
+                // --- ACCIONES RÁPIDAS ---
+                Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                    Text("Gestión Rápida", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = textPrimary)
+                    Spacer(modifier = Modifier.height(15.dp))
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(15.dp)) {
+                        ActionCard(Modifier.weight(1f), "Empleados", Icons.Filled.AccountCircle, Color(0xFF0052D4), cardColor, textPrimary) { }
+                        ActionCard(Modifier.weight(1f), "Reportes", Icons.AutoMirrored.Filled.List, Color(0xFFF2994A), cardColor, textPrimary) { }
+                    }
+
+                    Spacer(modifier = Modifier.height(15.dp))
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(15.dp)) {
+                        ActionCard(Modifier.weight(1f), "Ajustes", Icons.Filled.Settings, Color(0xFF8E44AD), cardColor, textPrimary) { }
+                        ActionCard(Modifier.weight(1f), "Salir", Icons.AutoMirrored.Filled.ExitToApp, Color(0xFFFF5252), cardColor, textPrimary) {
+                            navController.navigate("login") { popUpTo(0) { inclusive = true } }
+                        }
+                    }
+                }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(30.dp))
+
+                // --- PANEL DE ACTIVIDAD RECIENTE ---
+                Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Actividad Reciente", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = textPrimary)
+                        Text("Ver todo", color = primaryAdmin, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Spacer(modifier = Modifier.height(15.dp))
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = cardColor),
+                        shape = RoundedCornerShape(20.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            ActivityRow("Luis Martínez", "Entrada • 08:00 AM", true, textPrimary, textSecondary)
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 15.dp), color = dividerColor)
+                            ActivityRow("María García", "Entrada • 08:15 AM", true, textPrimary, textSecondary)
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 15.dp), color = dividerColor)
+                            ActivityRow("David López", "Salida • 16:30 PM", false, textPrimary, textSecondary)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(30.dp)) // Margen final
+                }
+            }
+        }
+    }
+}
+
+// --- MICRO-COMPONENTES (Limpian el código principal) ---
+
+@Composable
+fun StatItem(value: String, label: String, valueColor: Color, labelColor: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp, color = valueColor)
+        Text(label, color = labelColor, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
+fun ActionCard(modifier: Modifier = Modifier, title: String, icon: ImageVector, color: Color, cardColor: Color, textColor: Color, onClick: () -> Unit) {
+    Card(
+        modifier = modifier.clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = cardColor),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(15.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier.size(45.dp).clip(CircleShape).background(color.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = textColor)
+        }
+    }
+}
+
+@Composable
+fun ActivityRow(name: String, detail: String, isEntry: Boolean, textColor: Color, subTextColor: Color) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(15.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Indicador de estado (Verde para entrada, Naranja para salida)
+        val statusColor = if (isEntry) Color(0xFF1BD176) else Color(0xFFF2994A)
+        Box(
+            modifier = Modifier.size(12.dp).clip(CircleShape).background(statusColor)
+        )
+
+        Spacer(modifier = Modifier.width(15.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = textColor)
+            Text(detail, color = subTextColor, fontSize = 14.sp)
+        }
+
+        Icon(Icons.Filled.MoreVert, contentDescription = null, tint = subTextColor)
+    }
+}
