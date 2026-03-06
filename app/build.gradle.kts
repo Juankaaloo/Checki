@@ -54,7 +54,9 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.8.3")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation(libs.protolite.well.known.types)
-    // -----------------------------------------------------------
+
+    // --- COIL (carga de imágenes para el avatar de perfil) ---
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
     // Testing
     testImplementation(libs.junit)
