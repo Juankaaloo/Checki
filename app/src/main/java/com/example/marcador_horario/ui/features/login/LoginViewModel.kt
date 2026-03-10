@@ -4,43 +4,49 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import com.example.marcador_horario.data.network.ApiResult
+import com.example.marcador_horario.data.repository.AuthRepository
+import kotlinx.coroutines.launch
 
-/**
- * ViewModel que gestiona la lógica de autenticación y los campos del formulario de login.
- */
-class LoginViewModel : ViewModel() {
+class LoginViewModel(
+    private val authRepository: AuthRepository
+) : ViewModel() {
 
-    // Variables de estado atadas directamente a los campos de texto de la UI (Two-way data binding)
-    var email by mutableStateOf("")
-    var password by mutableStateOf("")
+    var email           by mutableStateOf("")
+    var password        by mutableStateOf("")
     var passwordVisible by mutableStateOf(false)
-    var acceptedTerms by mutableStateOf(true)
+    var acceptedTerms   by mutableStateOf(true)
+    var isLoading       by mutableStateOf(false)
+    var errorMessage    by mutableStateOf<String?>(null)
 
-    // Funciones de actualización de estado llamadas desde los campos de texto
-    fun onEmailChanged(newEmail: String) { email = newEmail }
-    fun onPasswordChanged(newPassword: String) { password = newPassword }
-    fun togglePasswordVisibility() { passwordVisible = !passwordVisible }
-    fun onTermsChanged(accepted: Boolean) { acceptedTerms = accepted }
+    fun onEmailChanged(v: String)    { email = v; errorMessage = null }
+    fun onPasswordChanged(v: String) { password = v; errorMessage = null }
+    fun togglePasswordVisibility()   { passwordVisible = !passwordVisible }
+    fun onTermsChanged(v: Boolean)   { acceptedTerms = v }
 
-    /**
-     * Simula una llamada a backend para validar las credenciales.
-     * @param onSuccess Callback que retorna el nombre formateado y un Boolean (true = es Admin).
-     */
     fun onLoginClick(onSuccess: (String, Boolean) -> Unit) {
-        // Validación básica de formulario local
-        if (email.isNotEmpty() && password.isNotEmpty() && acceptedTerms) {
-
-            // Lógica de mock (simulación).
-            // TODO (Fase 2): Reemplazar por autenticación real con Firebase o API REST.
-            if (email == "admin@prueba.com" && password == "admin123") {
-                // Credenciales maestras: Acceso al panel de administrador
-                onSuccess("Administrador", true)
-            } else {
-                // Resto de credenciales: Acceso estándar de empleado
-                // Extraemos el nombre de la dirección de correo y capitalizamos la primera letra
-                val name = email.substringBefore("@").replaceFirstChar { it.uppercase() }
-                onSuccess(name, false)
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            when (val result = authRepository.login(email.trim(), password)) {
+                is ApiResult.Success -> {
+                    val user = result.data
+                    onSuccess(user.name, user.isAdmin)
+                }
+                is ApiResult.Error -> {
+                    errorMessage = result.message
+                }
+                else -> {}
             }
+            isLoading = false
         }
+    }
+
+    class Factory(private val repo: AuthRepository) : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>) =
+            LoginViewModel(repo) as T
     }
 }

@@ -3,18 +3,53 @@ package com.example.marcador_horario
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
+import androidx.compose.runtime.*
+import androidx.navigation.compose.rememberNavController
 import com.example.marcador_horario.navigation.NavGraph
-import com.example.marcador_horario.ui.theme.Marcador_HorarioTheme
+import com.example.marcador_horario.ui.features.home.HomeViewModel
+import com.example.marcador_horario.ui.features.login.LoginViewModel
+import com.example.marcador_horario.ui.features.record.RecordViewModel
+import com.example.marcador_horario.ui.features.settings.SettingsViewModel
 
 class MainActivity : ComponentActivity() {
+
+    private val container get() = (application as MarcadorHorarioApp).container
+
+    private val loginViewModel: LoginViewModel by viewModels {
+        LoginViewModel.Factory(container.authRepository)
+    }
+    private val homeViewModel: HomeViewModel by viewModels {
+        HomeViewModel.Factory(container.attendanceRepository, container.sessionManager)
+    }
+    private val recordViewModel: RecordViewModel by viewModels {
+        RecordViewModel.Factory(container.attendanceRepository)
+    }
+    private val settingsViewModel: SettingsViewModel by viewModels {
+        SettingsViewModel.Factory(
+            container.settingsRepository,
+            container.sessionManager,
+            container.localeManager
+        )
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        homeViewModel.attachContext(this)
+
         setContent {
-            Marcador_HorarioTheme {
-                NavGraph()
-            }
+            var isDarkMode by remember { mutableStateOf(true) }
+            val navController = rememberNavController()
+
+            NavGraph(
+                navController     = navController,
+                isDarkMode        = isDarkMode,
+                onThemeChange     = { isDarkMode = it },
+                loginViewModel    = loginViewModel,
+                homeViewModel     = homeViewModel,
+                recordViewModel   = recordViewModel,
+                settingsViewModel = settingsViewModel
+            )
         }
     }
 }

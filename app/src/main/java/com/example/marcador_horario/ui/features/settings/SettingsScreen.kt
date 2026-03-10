@@ -1,5 +1,7 @@
 package com.example.marcador_horario.ui.features.settings
 
+import com.example.marcador_horario.ui.features.settings.SettingsViewModel
+
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -43,11 +45,12 @@ fun SettingsScreen(
     username: String,
     isDarkMode: Boolean,
     isAdmin: Boolean = false,
-    onThemeChange: (Boolean) -> Unit
+    onThemeChange: (Boolean) -> Unit,
+    viewModel: SettingsViewModel
 ) {
     // ── Estado ────────────────────────────────────────────────────────────────
-    var notificationsEnabled by remember { mutableStateOf(true) }
-    var gpsEnabled           by remember { mutableStateOf(true) }
+    var notificationsEnabled by remember { mutableStateOf(viewModel.notifEnabled) }
+    var gpsEnabled           by remember { mutableStateOf(viewModel.gpsEnabled) }
     var selectedLanguage     by remember { mutableStateOf("English") }
     var avatarUri            by remember { mutableStateOf<Uri?>(null) }
 

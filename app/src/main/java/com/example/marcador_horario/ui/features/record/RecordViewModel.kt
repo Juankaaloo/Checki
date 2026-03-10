@@ -4,126 +4,116 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import java.util.Calendar
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import com.example.marcador_horario.data.model.AttendanceDto
+import com.example.marcador_horario.data.network.ApiResult
+import com.example.marcador_horario.data.repository.AttendanceRepository
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 
-// ─── Modelo de datos para un registro de fichaje ─────────────────────────────
 data class WorkRecord(
-    val dateLabel: String,       // Ej: "Monday, March 3"
-    val entrance: String,        // Ej: "08:30 AM"
-    val exit: String,            // Ej: "17:00 PM"
-    val timeElapsed: String,     // Ej: "08h 30m"
-    val workedMinutes: Int,      // Para cálculos y color
-    val location: String         // "Office" | "Home"
+    val dateLabel: String,
+    val entrance: String,
+    val exit: String,
+    val timeElapsed: String,
+    val workedMinutes: Int,
+    val location: String
 )
 
-class RecordViewModel : ViewModel() {
+class RecordViewModel(
+    private val attendanceRepository: AttendanceRepository
+) : ViewModel() {
 
-    // ─── Mes y año mostrados actualmente ─────────────────────────────────────
     var displayedMonth by mutableStateOf(Calendar.getInstance().get(Calendar.MONTH))
         private set
     var displayedYear by mutableStateOf(Calendar.getInstance().get(Calendar.YEAR))
         private set
 
-    // ─── Nombre del mes formateado ────────────────────────────────────────────
+    var currentRecords by mutableStateOf<List<WorkRecord>>(emptyList())
+        private set
+    var isLoading by mutableStateOf(false)
+        private set
+    var errorMessage by mutableStateOf<String?>(null)
+        private set
+
     val monthLabel: String
         get() {
-            val months = listOf(
-                "January", "February", "March", "April", "May", "June",
-                "July", "August", "September", "October", "November", "December"
-            )
+            val months = listOf("January","February","March","April","May","June",
+                "July","August","September","October","November","December")
             return "${months[displayedMonth]} $displayedYear"
         }
 
-    // ─── Datos simulados (en una app real vendrían de Room/DB) ────────────────
-    private val allRecords: Map<Pair<Int, Int>, List<WorkRecord>> = mapOf(
-        // Enero 2025
-        Pair(Calendar.JANUARY, 2025) to listOf(
-            WorkRecord("Wednesday, January 8",  "08:00 AM", "16:30 PM", "08h 30m", 510, "Office"),
-            WorkRecord("Thursday, January 9",   "09:00 AM", "18:00 PM", "09h 00m", 540, "Home"),
-            WorkRecord("Friday, January 10",    "08:30 AM", "14:00 PM", "05h 30m", 330, "Office"),
-            WorkRecord("Monday, January 13",    "08:00 AM", "16:00 PM", "08h 00m", 480, "Office"),
-            WorkRecord("Tuesday, January 14",   "10:00 AM", "19:00 PM", "09h 00m", 540, "Home"),
-        ),
-        // Febrero 2025
-        Pair(Calendar.FEBRUARY, 2025) to listOf(
-            WorkRecord("Monday, February 3",    "08:00 AM", "16:00 PM", "07h 00m", 420, "Office"),
-            WorkRecord("Tuesday, February 4",   "09:30 AM", "18:30 PM", "09h 00m", 540, "Home"),
-            WorkRecord("Wednesday, February 5", "08:00 AM", "17:00 PM", "09h 00m", 540, "Office"),
-            WorkRecord("Thursday, February 6",  "10:00 AM", "14:00 PM", "04h 00m", 240, "Home"),
-            WorkRecord("Friday, February 7",    "08:00 AM", "16:00 PM", "08h 00m", 480, "Office"),
-            WorkRecord("Monday, February 10",   "09:00 AM", "17:30 PM", "08h 30m", 510, "Home"),
-            WorkRecord("Tuesday, February 11",  "08:00 AM", "16:00 PM", "08h 00m", 480, "Office"),
-        ),
-        // Marzo 2025
-        Pair(Calendar.MARCH, 2025) to listOf(
-            WorkRecord("Monday, March 3",       "08:15 AM", "17:00 PM", "08h 45m", 525, "Office"),
-            WorkRecord("Tuesday, March 4",      "09:00 AM", "18:00 PM", "09h 00m", 540, "Home"),
-            WorkRecord("Wednesday, March 5",    "08:00 AM", "16:30 PM", "08h 30m", 510, "Office"),
-            WorkRecord("Thursday, March 6",     "10:30 AM", "19:30 PM", "09h 00m", 540, "Home"),
-            WorkRecord("Friday, March 7",       "08:00 AM", "13:00 PM", "05h 00m", 300, "Office"),
-        ),
-        // Abril 2025
-        Pair(Calendar.APRIL, 2025) to listOf(
-            WorkRecord("Tuesday, April 1",      "08:00 AM", "17:00 PM", "09h 00m", 540, "Office"),
-            WorkRecord("Wednesday, April 2",    "09:00 AM", "17:30 PM", "08h 30m", 510, "Home"),
-        ),
-        // Mayo 2025 — sin registros (para mostrar pantalla vacía)
-        // Junio 2025
-        Pair(Calendar.JUNE, 2025) to listOf(
-            WorkRecord("Monday, June 2",        "08:00 AM", "16:00 PM", "08h 00m", 480, "Office"),
-        )
-    )
-
-    // ─── Registros del mes mostrado actualmente ───────────────────────────────
-    val currentRecords: List<WorkRecord>
-        get() = allRecords[Pair(displayedMonth, displayedYear)] ?: emptyList()
-
-    // ─── Total de horas trabajadas en el mes ──────────────────────────────────
     val monthlySummary: String
         get() {
-            val totalMinutes = currentRecords.sumOf { it.workedMinutes }
-            val hours = totalMinutes / 60
-            val mins  = totalMinutes % 60
-            return "%02dh %02dm".format(hours, mins)
+            val total = currentRecords.sumOf { it.workedMinutes }
+            return "%02dh %02dm".format(total / 60, total % 60)
         }
 
-    val monthlyDays: Int
-        get() = currentRecords.size
+    val monthlyDays: Int get() = currentRecords.size
 
-    // ─── Navegación de mes ────────────────────────────────────────────────────
-    fun previousMonth() {
-        if (displayedMonth == Calendar.JANUARY) {
-            displayedMonth = Calendar.DECEMBER
-            displayedYear--
-        } else {
-            displayedMonth--
-        }
-    }
-
-    fun nextMonth() {
-        val now = Calendar.getInstance()
-        // No permitir navegar más allá del mes actual
-        if (displayedYear == now.get(Calendar.YEAR) && displayedMonth == now.get(Calendar.MONTH)) return
-        if (displayedMonth == Calendar.DECEMBER) {
-            displayedMonth = Calendar.JANUARY
-            displayedYear++
-        } else {
-            displayedMonth++
-        }
-    }
-
-    /** True si ya estamos en el mes actual (no se puede avanzar más) */
     val isCurrentMonth: Boolean
         get() {
             val now = Calendar.getInstance()
             return displayedYear == now.get(Calendar.YEAR) && displayedMonth == now.get(Calendar.MONTH)
         }
 
-    // ─── Color de barra lateral según minutos trabajados ─────────────────────
-    // < 6h → rojo, 6h–7h59m → naranja, ≥ 8h → verde
-    fun barColorForMinutes(minutes: Int): Long = when {
-        minutes >= 480 -> 0xFF00A313  // verde  (≥ 8h)
-        minutes >= 360 -> 0xFFF2994A  // naranja (6h–8h)
-        else           -> 0xFFFF5252  // rojo   (< 6h)
+    init { loadCurrentMonth() }
+
+    private fun loadCurrentMonth() {
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            val monthStr = "%04d-%02d".format(displayedYear, displayedMonth + 1)
+            when (val result = attendanceRepository.getHistory(month = monthStr)) {
+                is ApiResult.Success -> currentRecords = result.data.records.map { it.toWorkRecord() }
+                is ApiResult.Error   -> errorMessage = result.message
+                else -> {}
+            }
+            isLoading = false
+        }
     }
+
+    fun previousMonth() {
+        if (displayedMonth == Calendar.JANUARY) { displayedMonth = Calendar.DECEMBER; displayedYear-- }
+        else displayedMonth--
+        loadCurrentMonth()
+    }
+
+    fun nextMonth() {
+        val now = Calendar.getInstance()
+        if (displayedYear == now.get(Calendar.YEAR) && displayedMonth == now.get(Calendar.MONTH)) return
+        if (displayedMonth == Calendar.DECEMBER) { displayedMonth = Calendar.JANUARY; displayedYear++ }
+        else displayedMonth++
+        loadCurrentMonth()
+    }
+
+    fun barColorForMinutes(minutes: Int): Long = when {
+        minutes >= 480 -> 0xFF00A313
+        minutes >= 360 -> 0xFFF2994A
+        else           -> 0xFFFF5252
+    }
+
+    class Factory(private val repo: AttendanceRepository) : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>) = RecordViewModel(repo) as T
+    }
+}
+
+private fun AttendanceDto.toWorkRecord(): WorkRecord {
+    val dtFmt  = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+    val timeFmt = SimpleDateFormat("hh:mm a", Locale.getDefault())
+    val dateFmt = SimpleDateFormat("EEEE, MMMM d", Locale.getDefault())
+
+    val checkInDate  = checkIn?.let  { runCatching { dtFmt.parse(it) }.getOrNull() }
+    val checkOutDate = checkOut?.let { runCatching { dtFmt.parse(it) }.getOrNull() }
+
+    val dateLabel  = checkInDate?.let { dateFmt.format(it) } ?: date
+    val entryStr   = checkInDate?.let  { timeFmt.format(it) } ?: "--:--"
+    val exitStr    = checkOutDate?.let { timeFmt.format(it) } ?: "--:--"
+    val elapsed    = "%02dh %02dm".format(workedMinutes / 60, workedMinutes % 60)
+    val loc        = location.replaceFirstChar { it.uppercase() }
+
+    return WorkRecord(dateLabel, entryStr, exitStr, elapsed, workedMinutes, loc)
 }

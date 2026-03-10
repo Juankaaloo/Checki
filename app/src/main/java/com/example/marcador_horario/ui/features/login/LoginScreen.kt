@@ -39,7 +39,7 @@ import com.example.marcador_horario.R
 
 @Composable
 fun LoginScreen(
-    viewModel: LoginViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    viewModel: LoginViewModel,
     onLoginSuccess: (String, Boolean) -> Unit
 ) {
     val focusManager = LocalFocusManager.current
@@ -47,7 +47,7 @@ fun LoginScreen(
     // ── Validaciones en tiempo real ───────────────────────────────────────────
     val isEmailValid = viewModel.email.isEmpty() ||
             android.util.Patterns.EMAIL_ADDRESS.matcher(viewModel.email).matches()
-    val isPasswordValid = viewModel.password.isEmpty() || viewModel.password.length >= 6
+    val isPasswordValid = viewModel.password.isEmpty() || viewModel.password.length >= 4
     val canLogin = viewModel.email.isNotEmpty() &&
             viewModel.password.isNotEmpty() &&
             viewModel.acceptedTerms &&
@@ -62,11 +62,6 @@ fun LoginScreen(
         targetValue = if (visible) 0f else 80f,
         animationSpec = tween(600, easing = EaseOutCubic),
         label = "cardSlide"
-    )
-    val cardAlpha by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(500),
-        label = "cardAlpha"
     )
     val logoScale by animateFloatAsState(
         targetValue = if (visible) 1f else 0.7f,
@@ -89,14 +84,13 @@ fun LoginScreen(
         label = "btnScale"
     )
 
-    // ── Color animado del botón según estado ──────────────────────────────────
     val btnColor by animateColorAsState(
         targetValue = if (canLogin) Color(0xFF1565C0) else Color(0xFFB0BEC5),
         animationSpec = tween(300),
         label = "btnColor"
     )
 
-    // ── Shake animation para error de login ───────────────────────────────────
+    // ── Shake animation para error ────────────────────────────────────────────
     var loginError by remember { mutableStateOf(false) }
     val shakeOffset by animateFloatAsState(
         targetValue = if (loginError) 1f else 0f,
@@ -115,6 +109,11 @@ fun LoginScreen(
         label = "shake"
     )
 
+    // ── Trigger shake cuando hay error del backend ────────────────────────────
+    LaunchedEffect(viewModel.errorMessage) {
+        if (viewModel.errorMessage != null) loginError = true
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -132,7 +131,6 @@ fun LoginScreen(
                     )
                 )
         ) {
-            // Círculos decorativos
             Box(
                 modifier = Modifier
                     .size(250.dp)
@@ -194,7 +192,6 @@ fun LoginScreen(
             ) {
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Título con animación
                 AnimatedVisibility(
                     visible = visible,
                     enter   = fadeIn(tween(700)) + slideInVertically { -30 }
@@ -250,7 +247,7 @@ fun LoginScreen(
                     label         = "Password",
                     value         = viewModel.password,
                     onValueChange = { viewModel.onPasswordChanged(it) },
-                    placeholder   = "Min. 6 characters",
+                    placeholder   = "Min. 4 characters",
                     leadingIcon   = {
                         Icon(
                             Icons.Filled.Lock,
@@ -263,7 +260,7 @@ fun LoginScreen(
                     passwordVisible    = viewModel.passwordVisible,
                     onVisibilityChange = { viewModel.togglePasswordVisibility() },
                     isError       = !isPasswordValid,
-                    errorMessage  = "Password must be at least 6 characters",
+                    errorMessage  = "Password must be at least 4 characters",
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
                         imeAction    = ImeAction.Done
@@ -313,11 +310,7 @@ fun LoginScreen(
                             uncheckedColor = Color(0xFFB0BEC5)
                         )
                     )
-                    Text(
-                        "I accept the ",
-                        fontSize = 13.sp,
-                        color    = Color(0xFF4A5568)
-                    )
+                    Text("I accept the ", fontSize = 13.sp, color = Color(0xFF4A5568))
                     Text(
                         "Terms & Conditions",
                         fontSize       = 13.sp,
@@ -329,6 +322,20 @@ fun LoginScreen(
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
+
+                // ── ERROR DEL BACKEND ─────────────────────────────────────────
+                AnimatedVisibility(
+                    visible = viewModel.errorMessage != null,
+                    enter   = fadeIn() + expandVertically(),
+                    exit    = fadeOut() + shrinkVertically()
+                ) {
+                    Text(
+                        text     = "❌ ${viewModel.errorMessage}",
+                        fontSize = 12.sp,
+                        color    = Color(0xFFEF5350),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
 
                 // ── BOTÓN LOGIN ───────────────────────────────────────────────
                 Button(
@@ -342,6 +349,7 @@ fun LoginScreen(
                             loginError = true
                         }
                     },
+                    enabled  = !viewModel.isLoading,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp)
@@ -353,13 +361,21 @@ fun LoginScreen(
                         defaultElevation = if (canLogin) 8.dp else 0.dp
                     )
                 ) {
-                    Text(
-                        "SIGN IN",
-                        fontSize      = 16.sp,
-                        fontWeight    = FontWeight.ExtraBold,
-                        color         = Color.White,
-                        letterSpacing = 2.sp
-                    )
+                    if (viewModel.isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(22.dp),
+                            color    = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            "SIGN IN",
+                            fontSize      = 16.sp,
+                            fontWeight    = FontWeight.ExtraBold,
+                            color         = Color.White,
+                            letterSpacing = 2.sp
+                        )
+                    }
                 }
 
                 // ── MENSAJE DE VALIDACIÓN GLOBAL ──────────────────────────────
@@ -369,10 +385,10 @@ fun LoginScreen(
                     exit    = fadeOut() + shrinkVertically()
                 ) {
                     val hint = when {
-                        !isEmailValid           -> "✉ Check your email format"
-                        !isPasswordValid        -> "🔒 Password too short"
+                        !isEmailValid            -> "✉ Check your email format"
+                        !isPasswordValid         -> "🔒 Password too short"
                         !viewModel.acceptedTerms -> "☑ Please accept the terms"
-                        else                    -> "Fill in all fields to continue"
+                        else                     -> "Fill in all fields to continue"
                     }
                     Text(
                         text     = hint,
@@ -404,20 +420,11 @@ fun ValidatedLoginField(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default
 ) {
-    val borderColor by animateColorAsState(
-        targetValue = when {
-            isError        -> Color(0xFFEF5350)
-            value.isNotEmpty() -> Color(0xFF1565C0)
-            else           -> Color.Transparent
-        },
-        animationSpec = tween(300),
-        label = "fieldBorder"
-    )
     val bgColor by animateColorAsState(
         targetValue = when {
-            isError        -> Color(0xFFFFEBEE)
+            isError            -> Color(0xFFFFEBEE)
             value.isNotEmpty() -> Color(0xFFE8F0FE)
-            else           -> Color(0xFFF1F3F8)
+            else               -> Color(0xFFF1F3F8)
         },
         animationSpec = tween(300),
         label = "fieldBg"
@@ -449,10 +456,8 @@ fun ValidatedLoginField(
                 if (isPassword) {
                     IconButton(onClick = { onVisibilityChange?.invoke() }) {
                         Icon(
-                            imageVector = if (passwordVisible)
-                                Icons.Filled.Visibility
-                            else
-                                Icons.Filled.VisibilityOff,
+                            imageVector = if (passwordVisible) Icons.Filled.Visibility
+                            else Icons.Filled.VisibilityOff,
                             contentDescription = null,
                             tint = Color(0xFF7E8CB0),
                             modifier = Modifier.size(20.dp)
@@ -472,7 +477,6 @@ fun ValidatedLoginField(
             )
         )
 
-        // Mensaje de error animado
         AnimatedVisibility(
             visible = isError && value.isNotEmpty(),
             enter   = fadeIn(tween(200)) + expandVertically(),

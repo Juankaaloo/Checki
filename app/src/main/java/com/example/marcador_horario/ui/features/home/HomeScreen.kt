@@ -45,7 +45,7 @@ fun HomeScreen(
     navController: NavController,
     username: String,
     isDarkMode: Boolean,
-    viewModel: HomeViewModel = viewModel()
+    viewModel: HomeViewModel
 ) {
     val context = LocalContext.current
 
