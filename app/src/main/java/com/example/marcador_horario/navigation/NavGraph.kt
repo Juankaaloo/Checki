@@ -14,8 +14,11 @@ import com.example.marcador_horario.ui.features.record.RecordViewModel
 import com.example.marcador_horario.ui.features.settings.SettingsScreen
 import com.example.marcador_horario.ui.features.settings.SettingsViewModel
 import com.example.marcador_horario.ui.features.admin.AdminScreen
+import com.example.marcador_horario.ui.features.admin.AdminViewModel
 import com.example.marcador_horario.ui.features.admin.AdminEmployeesScreen
+import com.example.marcador_horario.ui.features.admin.AdminEmployeesViewModel
 import com.example.marcador_horario.ui.features.admin.AdminReportsScreen
+import com.example.marcador_horario.ui.features.admin.AdminReportsViewModel
 
 @Composable
 fun NavGraph(
@@ -25,7 +28,10 @@ fun NavGraph(
     loginViewModel: LoginViewModel,
     homeViewModel: HomeViewModel,
     recordViewModel: RecordViewModel,
-    settingsViewModel: SettingsViewModel
+    settingsViewModel: SettingsViewModel,
+    adminViewModel: AdminViewModel,
+    adminEmployeesViewModel: AdminEmployeesViewModel,
+    adminReportsViewModel: AdminReportsViewModel
 ) {
     var activeUsername by remember { mutableStateOf("Employee") }
 
@@ -76,21 +82,23 @@ fun NavGraph(
                 navController = navController,
                 username      = activeUsername,
                 isDarkMode    = isDarkMode,
-                viewModel     = homeViewModel
+                viewModel     = adminViewModel
             )
         }
 
         composable("admin_employees") {
             AdminEmployeesScreen(
                 navController = navController,
-                isDarkMode    = isDarkMode
+                isDarkMode    = isDarkMode,
+                viewModel     = adminEmployeesViewModel
             )
         }
 
         composable("admin_reports") {
             AdminReportsScreen(
                 navController = navController,
-                isDarkMode    = isDarkMode
+                isDarkMode    = isDarkMode,
+                viewModel     = adminReportsViewModel
             )
         }
 

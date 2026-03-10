@@ -22,7 +22,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
@@ -33,10 +32,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.marcador_horario.R
 
@@ -48,26 +45,35 @@ fun HomeScreen(
     viewModel: HomeViewModel
 ) {
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(username) {
         viewModel.userName = username
         viewModel.attachContext(context)
     }
 
-    // ── Colores base ──────────────────────────────────────────────────────────
+    // ── Mostrar errores con Snackbar ──────────────────────────────────────
+    LaunchedEffect(viewModel.errorMessage) {
+        viewModel.errorMessage?.let { msg ->
+            snackbarHostState.showSnackbar(
+                message  = msg,
+                duration = SnackbarDuration.Short
+            )
+            viewModel.errorMessage = null
+        }
+    }
+
     val bgColor      = if (isDarkMode) Color(0xFF0D0D0D) else Color(0xFFF0F4FF)
     val cardColor    = if (isDarkMode) Color(0xFF1A1A2E) else Color.White
     val textColor    = if (isDarkMode) Color(0xFFE8EAF6) else Color(0xFF1A1A2E)
     val subTextColor = if (isDarkMode) Color(0xFF7986CB) else Color(0xFF7E8CB0)
     val dividerColor = if (isDarkMode) Color(0xFF2A2A4A) else Color(0xFFE8ECF8)
 
-    // Gradiente del header adaptativo
     val headerGradient = if (isDarkMode)
         listOf(Color(0xFF1A1A6E), Color(0xFF0D47A1), Color(0xFF0D0D0D))
     else
         listOf(Color(0xFF1565C0), Color(0xFF42A5F5), Color(0xFFF0F4FF))
 
-    // ── Animación entrada de pantalla ─────────────────────────────────────────
     var screenVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { screenVisible = true }
     val screenAlpha by animateFloatAsState(
@@ -81,7 +87,6 @@ fun HomeScreen(
         label = "screenSlide"
     )
 
-    // ── Animación del botón principal ─────────────────────────────────────────
     var buttonPressed by remember { mutableStateOf(false) }
     val buttonScale by animateFloatAsState(
         targetValue = if (buttonPressed) 0.94f else 1f,
@@ -93,7 +98,6 @@ fun HomeScreen(
         label = "buttonScale"
     )
 
-    // ── Color animado del botón principal ─────────────────────────────────────
     val buttonColor by animateColorAsState(
         targetValue = if (viewModel.isPunchedIn) Color(0xFFEF5350) else Color(0xFF26A69A),
         animationSpec = tween(durationMillis = 500),
@@ -108,7 +112,6 @@ fun HomeScreen(
         label = "buttonGlow"
     )
 
-    // ── Pulsación del indicador de estado ─────────────────────────────────────
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 0.85f,
@@ -129,7 +132,6 @@ fun HomeScreen(
         label = "pulseAlpha"
     )
 
-    // ── Color del chip de estado ──────────────────────────────────────────────
     val chipColor = when (viewModel.workStatus) {
         "Working"  -> Color(0xFF26A69A)
         "On Break" -> Color(0xFFFFA726)
@@ -141,7 +143,6 @@ fun HomeScreen(
         label = "chipColor"
     )
 
-    // ── Progreso animado ──────────────────────────────────────────────────────
     val animatedProgress by animateFloatAsState(
         targetValue = viewModel.workProgress,
         animationSpec = tween(durationMillis = 800, easing = EaseOutCubic),
@@ -158,8 +159,18 @@ fun HomeScreen(
     )
 
     Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                Snackbar(
+                    snackbarData     = data,
+                    containerColor   = Color(0xFFEF5350),
+                    contentColor     = Color.White,
+                    shape            = RoundedCornerShape(12.dp),
+                    modifier         = Modifier.padding(horizontal = 16.dp)
+                )
+            }
+        },
         bottomBar = {
-            // ── NAV BAR con indicador animado ─────────────────────────────────
             Surface(
                 color         = cardColor,
                 shadowElevation = 16.dp,
@@ -232,7 +243,6 @@ fun HomeScreen(
                     .fillMaxHeight(0.48f)
                     .background(brush = Brush.verticalGradient(colors = headerGradient))
             ) {
-                // Círculos decorativos de fondo (glassmorphism effect)
                 Box(
                     modifier = Modifier
                         .size(220.dp)
@@ -279,7 +289,6 @@ fun HomeScreen(
                     )
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    // Saludo
                     Text(
                         "Welcome back,",
                         color    = Color.White.copy(alpha = 0.75f),
@@ -303,7 +312,6 @@ fun HomeScreen(
                     )
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Reloj grande
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(
                             viewModel.currentTime,
@@ -362,7 +370,6 @@ fun HomeScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                // Indicador pulsante
                                 Box(
                                     modifier = Modifier.size(20.dp),
                                     contentAlignment = Alignment.Center
@@ -460,7 +467,6 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
-                        // Sombra/glow detrás del botón
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -682,7 +688,6 @@ fun HomeScreen(
     }
 }
 
-//  Componente reutilizable para filas de resumen
 @Composable
 private fun SummaryRow(
     label: String,
